@@ -1,0 +1,12 @@
+{
+  "groups": [
+  ],
+  "properties": [
+    {
+      "name": "blobstore",
+      "type": "java.util.Map<java.lang.String,org.unbrokendome.spring.blobstore.gcs.autoconfigure.GcsBlobStoreDefinition>"
+    }
+  ],
+  "hints": [
+  ]
+}

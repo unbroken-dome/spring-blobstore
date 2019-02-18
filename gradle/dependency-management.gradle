@@ -1,0 +1,34 @@
+dependencyManagement {
+
+    imports {
+        mavenBom("org.springframework.boot:spring-boot-dependencies:2.1.3.RELEASE")
+    }
+
+    dependencies {
+        
+        dependencySet("org.bouncycastle:1.61") {
+            entry("bcpkix-jdk15on")
+        }
+
+        dependency("org.unbroken-dome.jsonwebtoken:jwt:1.5.0")
+    }
+}
+
+
+def dependencySetVersions = [
+        "com.google.code.findbugs"  : "3.0.2",
+        "com.willowtreeapps.assertk": "0.13",
+        "io.mockk"                  : "1.9.1",
+        "org.jetbrains.kotlin"      : kotlinVersion,
+        "org.junit.jupiter"         : "5.4.0"
+]
+
+
+configurations.all { Configuration conf ->
+    conf.resolutionStrategy.eachDependency { details ->
+        def v = dependencySetVersions[details.requested.group]
+        if (v) {
+            details.useVersion(v)
+        }
+    }
+}

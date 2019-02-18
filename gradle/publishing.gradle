@@ -1,0 +1,53 @@
+apply plugin: "maven-publish"
+
+
+task sourcesJar(type: Jar) {
+    group = "build"
+    description = "Assembles a jar archive containing the sources."
+    from sourceSets.main.allSource
+    archiveClassifier = "sources"
+}
+
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifact sourcesJar
+        }
+    }
+}
+
+
+bintray {
+    publications = ["mavenJava"]
+    
+    user = project.bintray_user
+    key = project.bintray_key
+
+    dryRun = Boolean.valueOf(project.bintray_dryrun as String)
+
+    pkg {
+        repo = project.bintray_repo
+        name = project.name
+        desc = project.description
+        websiteUrl = project.home_url
+        licenses = ['MIT']
+        labels = project.bintray_labels.split(',')
+
+        vcsUrl = project.scm_url
+        issueTrackerUrl = project.issues_url
+        publicDownloadNumbers = true
+    }
+
+    pkg.version {
+        name = project.version
+        released = new Date()
+        vcsTag = project.version
+    }
+}
+
+
+task release {
+    dependsOn tasks.bintrayUpload
+}

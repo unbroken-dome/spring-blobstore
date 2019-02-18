@@ -1,0 +1,4 @@
+blobstore:
+  example:
+    gcs:
+      bucket-name: exampleBucket
