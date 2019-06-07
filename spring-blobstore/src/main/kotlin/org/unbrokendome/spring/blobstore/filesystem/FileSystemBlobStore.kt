@@ -11,6 +11,7 @@ import org.unbrokendome.spring.blobstore.BlobInput
 import org.unbrokendome.spring.blobstore.BlobMetadata
 import org.unbrokendome.spring.blobstore.BlobNotFoundException
 import org.unbrokendome.spring.blobstore.BlobStore
+import org.unbrokendome.spring.blobstore.GeneralBlobStoreException
 import reactor.core.publisher.*
 import reactor.core.scheduler.Schedulers
 import java.io.ByteArrayOutputStream
@@ -63,8 +64,12 @@ class DefaultFileSystemBlobStore(
 
                         FileSystemBlob(this, resolvedPath, metadataProps, dataBufferFactory, bufferSize)
                     }
-                    .onErrorMap(NoSuchFileException::class) { error ->
-                        BlobNotFoundException(path, error)
+                    .onErrorMap { error ->
+                        if (error is NoSuchFileException) {
+                            BlobNotFoundException(path, error)
+                        } else {
+                            GeneralBlobStoreException("Error reading metadata for blob at $path", error)
+                        }
                     }
             }
         }
@@ -85,17 +90,17 @@ class DefaultFileSystemBlobStore(
 
         val resolvedPath = basePath.resolve(path)
 
-        return Mono.fromCallable {
+        return Mono
+            .fromCallable {
+                if (failIfExists && Files.exists(resolvedPath)) {
+                    throw BlobAlreadyExistsException(path)
+                }
 
-            if (failIfExists && Files.exists(resolvedPath)) {
-                throw BlobAlreadyExistsException(path)
+                Files.createDirectories(resolvedPath.parent)
+                Files.createTempFile(tempDir, "blob", null)
+
             }
-
-            Files.createDirectories(resolvedPath.parent)
-
-            Files.createTempFile(tempDir, "blob", null)
-
-        }.subscribeOn(Schedulers.parallel())
+            .subscribeOn(Schedulers.parallel())
             .flatMap { tempFile ->
 
                 val metadataTempFile = metadataFile(tempFile)
@@ -109,6 +114,9 @@ class DefaultFileSystemBlobStore(
                         Files.deleteIfExists(metadataTempFile)
                     }
             }
+            .onErrorMap { error ->
+                GeneralBlobStoreException("Error storing blob at $path", error)
+            }
     }
 
 
@@ -118,8 +126,12 @@ class DefaultFileSystemBlobStore(
             Files.delete(resolvedPath)
             Files.delete(metadataFile(resolvedPath))
 
-        }.onErrorMap(NoSuchFileException::class) { error ->
-            BlobNotFoundException(path, error)
+        }.onErrorMap { error ->
+            if (error is NoSuchFileException) {
+                BlobNotFoundException(path, error)
+            } else {
+                GeneralBlobStoreException("Error deleting blob at $path", error)
+            }
         }
     }
 

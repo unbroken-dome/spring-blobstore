@@ -7,12 +7,15 @@ import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.util.MimeType
 import org.unbrokendome.spring.blobstore.Blob
 import org.unbrokendome.spring.blobstore.BlobMetadata
+import org.unbrokendome.spring.blobstore.GeneralBlobStoreException
+import reactor.core.publisher.*
 import java.nio.channels.AsynchronousFileChannel
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import java.time.Instant
 import java.util.Properties
+import java.util.concurrent.Callable
 
 
 internal class FileSystemBlob(
@@ -40,8 +43,16 @@ internal class FileSystemBlob(
 
 
     override val data: Publisher<DataBuffer>
-        get() = DataBufferUtils.readAsynchronousFileChannel(
-            { AsynchronousFileChannel.open(path, StandardOpenOption.READ) },
-            dataBufferFactory, bufferSize
-        )
+        get() = DataBufferUtils.readAsynchronousFileChannel(dataProvider(path), dataBufferFactory, bufferSize)
+            .onErrorMap(Exception::class.java) { error ->
+                GeneralBlobStoreException("Error reading from blob data file", error)
+            }
+
+
+    override fun discard(): Mono<Void> =
+        Mono.empty()
+
+
+    private fun dataProvider(path: Path): Callable<AsynchronousFileChannel> =
+        Callable { AsynchronousFileChannel.open(path, StandardOpenOption.READ) }
 }
