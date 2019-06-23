@@ -30,6 +30,8 @@ if ("release" !in gradle.startParameter.taskNames) {
 
 subprojects {
 
+    version = rootProject.version
+
     plugins.withId("base") {
         apply(plugin = "io.spring.dependency-management")
     }
@@ -40,7 +42,7 @@ subprojects {
             sourceCompatibility = JavaVersion.VERSION_1_8
             targetCompatibility = JavaVersion.VERSION_1_8
         }
-        
+
         dependencies {
             "compileOnly"("com.google.code.findbugs:jsr305")
             "testImplementation"("org.junit.jupiter:junit-jupiter-api")
